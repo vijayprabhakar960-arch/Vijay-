@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>User Dashboard</title>
+  <style>
+    body{font-family:Inter,system-ui;background:#f5f8ff;margin:0;padding:24px}
+    .card{background:#fff;padding:20px;border-radius:14px;max-width:850px;margin:20px auto;
+      box-shadow:0 6px 20px rgba(0,0,0,0.08);}
+    h2{margin-top:0;}
+    input,select,button{padding:10px;border-radius:8px;border:1px solid #ccc;font-size:15px;width:100%}
+    button{background:#1266f1;color:#fff;border:none;cursor:pointer;margin-top:8px}
+    .row{display:flex;gap:10px;}
+    .success{background:#e8fff0;color:#1a7f37;padding:10px;border-radius:8px;margin-top:8px}
+    .error{background:#ffeaea;color:#c00;padding:10px;border-radius:8px;margin-top:8px}
+    table{width:100%;border-collapse:collapse;margin-top:15px}
+    th,td{padding:10px;border-bottom:1px solid #eee;font-size:14px;text-align:left;}
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2 id="welcome">Welcome</h2>
+  <p id="phone"></p>
+  <p><strong>Wallet Balance:</strong> ₹<span id="wallet">0</span></p>
+  <button onclick="addMoney()">Add ₹100 (Demo)</button>
+</div>
+
+<div class="card">
+  <h2>Play Game</h2>
+
+  <label>Choose Market</label>
+  <select id="market">
+    <option value="">Select</option>
+    <option>Sridevi</option>
+    <option>Time Bazar</option>
+    <option>Kalyan</option>
+    <option>Milan Day</option>
+  </select>
+
+  <label>Enter Number</label>
+  <input id="playNumber" placeholder="0-9" />
+
+  <label>Enter Bet Amount</label>
+  <input id="betAmount" placeholder="Amount" />
+
+  <button onclick="submitPlay()">Submit</button>
+
+  <div id="msg"></div>
+</div>
+
+<div class="card">
+  <h2>Play History</h2>
+  <table id="historyTable">
+    <tr>
+      <th>Market</th>
+      <th>Number</th>
+      <th>Amount</th>
+      <th>Time</th>
+    </tr>
+  </table>
+</div>
+
+<script>
+function el(id){ return document.getElementById(id); }
+
+// Load session user
+let user = JSON.parse(localStorage.getItem("sessionUser") || "{}");
+
+// Set default wallet if not present
+if(!user.wallet){ user.wallet = 500; } // starting balance
+saveUser();
+
+function saveUser(){
+  localStorage.setItem("sessionUser", JSON.stringify(user));
+}
+
+// Show user info
+el("welcome").innerText = "Hi, " + (user.name || "User");
+el("phone").innerText = "Phone: " + user.phone;
+el("wallet").innerText = user.wallet;
+
+// Add demo money button
+function addMoney(){
+  user.wallet += 100;
+  saveUser();
+  el("wallet").innerText = user.wallet;
+  alert("₹100 added!");
+}
+
+// Submit play
+function submitPlay(){
+  let market = el("market").value;
+  let number = el("playNumber").value.trim();
+  let amount = Number(el("betAmount").value);
+
+  if(!market) return show("Select a market",false);
+  if(number === "" || isNaN(number)) return show("Enter a valid number",false);
+  if(amount <= 0 || isNaN(amount)) return show("Enter valid amount",false);
+
+  if(amount > user.wallet){
+    show("Insufficient wallet balance!", false);
+    return;
+  }
+
+  // Deduct wallet
+  user.wallet -= amount;
+  saveUser();
+  el("wallet").innerText = user.wallet;
+
+  // Save history
+  let play = {
+    market,
+    number,
+    amount,
+    time: new Date().toLocaleString()
+  };
+
+  let history = JSON.parse(localStorage.getItem("playHistory") || "[]");
+  history.push(play);
+  localStorage.setItem("playHistory", JSON.stringify(history));
+
+  loadHistory();
+
+  show("Bet submitted successfully!", true);
+}
+
+// Show message
+function show(text, ok=true){
+  el("msg").innerHTML = `<div class="${ok?'success':'error'}">${text}</div>`;
+}
+
+// Load play history into table
+function loadHistory(){
+  let history = JSON.parse(localStorage.getItem("playHistory") || "[]");
+  let table = `
+    <tr>
+      <th>Market</th>
+      <th>Number</th>
+      <th>Amount</th>
+      <th>Time</th>
+    </tr>`;
+
+  history.forEach(h=>{
+    table += `
+      <tr>
+        <td>${h.market}</td>
+        <td>${h.number}</td>
+        <td>₹${h.amount}</td>
+        <td>${h.time}</td>
+      </tr>`;
+  });
+
+  el("historyTable").innerHTML = table;
+}
+
+loadHistory();
+</script>
+
+</body>
+</html>
